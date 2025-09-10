@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Gamified To-Do with Plant</title>
+<style>
+  :root {
+    --bg: #f9fafb; --card:#ffffff; --accent:#16a34a;
+    --muted:#6b7280;
+  }
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    margin:0; background:var(--bg); color:#111827; padding:16px;
+  }
+  h1 { font-size:20px; margin:0 0 12px }
+  .wrap { max-width: 960px; margin:0 auto }
+  .card { background:var(--card); border-radius:12px; padding:14px;
+          box-shadow:0 2px 6px rgba(0,0,0,0.08); margin-bottom:14px }
+  table { width:100%; border-collapse: collapse; }
+  th, td { padding:8px; text-align:left; font-size:14px }
+  th { color:var(--muted); font-weight:500; }
+  tr:nth-child(even){ background:#f3f4f6 }
+  input, select {
+    font:inherit; padding:4px 6px; border:1px solid #d1d5db; border-radius:6px;
+  }
+  button { font:inherit; padding:6px 10px; border-radius:6px; cursor:pointer;
+           border:0; background:var(--accent); color:white }
+  button.small { padding:4px 8px; font-size:12px }
+  .status { border-radius:10px; padding:2px 8px; font-size:12px; }
+  .notstarted { background:#fee2e2; color:#991b1b; }
+  .inprogress { background:#fef3c7; color:#92400e; }
+  .done { background:#dcfce7; color:#166534; }
+  .plant { text-align:center; margin:20px 0 }
+  svg { width:120px; height:auto }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🌱 To-do + Habit Plant</h1>
+  
+  <div class="card">
+    <form id="newTaskForm">
+      <input type="text" id="taskName" placeholder="Task name" required />
+      <input type="text" id="className" placeholder="Class (e.g. Math)" />
+      <input type="date" id="dueDate" required />
+      <button>Add Task</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <table id="taskTable">
+      <thead>
+        <tr>
+          <th>Task</th>
+          <th>Class</th>
+          <th>Status</th>
+          <th>Due Date</th>
+          <th>Days Left</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card plant" id="plantContainer"></div>
+</div>
+
+<script>
+const STORAGE_KEY = "todo_plant_v1";
+let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+
+function daysLeft(dateStr){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(dateStr); due.setHours(0,0,0,0);
+  return Math.ceil((due - today) / (1000*60*60*24));
+}
+
+function render(){
+  const tbody = document.querySelector("#taskTable tbody");
+  tbody.innerHTML = "";
+  tasks.forEach((t,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${t.name}</td>
+      <td>${t.class || ""}</td>
+      <td>
+        <select data-index="${i}" class="statusSel">
+          <option value="not started" ${t.status==="not started"?"selected":""}>Not started</option>
+          <option value="in progress" ${t.status==="in progress"?"selected":""}>In progress</option>
+          <option value="done" ${t.status==="done"?"selected":""}>Done</option>
+        </select>
+      </td>
+      <td>${t.due}</td>
+      <td>${daysLeft(t.due)}</td>
+      <td><button class="small delBtn" data-index="${i}">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  drawPlant();
+}
+
+document.getElementById("newTaskForm").onsubmit = e=>{
+  e.preventDefault();
+  const name = document.getElementById("taskName").value.trim();
+  const cls = document.getElementById("className").value.trim();
+  const due = document.getElementById("dueDate").value;
+  if(!name || !due) return;
+  tasks.push({name, class:cls, due, status:"not started"});
+  save(); e.target.reset(); render();
+};
+
+document.addEventListener("change", e=>{
+  if(e.target.classList.contains("statusSel")){
+    const idx = e.target.dataset.index;
+    tasks[idx].status = e.target.value;
+    save(); render();
+  }
+});
+document.addEventListener("click", e=>{
+  if(e.target.classList.contains("delBtn")){
+    tasks.splice(e.target.dataset.index,1);
+    save(); render();
+  }
+});
+
+function drawPlant(){
+  const plantDiv = document.getElementById("plantContainer");
+  const done = tasks.filter(t=>t.status==="done").length;
+  const pct = tasks.length? Math.round(done/tasks.length*100):0;
+  let stage = 0;
+  if(pct>=80) stage=4; else if(pct>=50) stage=3; else if(pct>=30) stage=2; else if(pct>=10) stage=1;
+  plantDiv.innerHTML = plantSVG(stage)+`<div>${pct}% tasks completed</div>`;
+}
+
+function plantSVG(stage){
+  return `
+  <svg viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="transparent"/>
+    <g transform="translate(50,70)">
+      <rect x="-20" y="20" width="40" height="10" fill="#8b5e3c"/>
+      ${stage>=0? `<circle cx="0" cy="10" r="4" fill="#3b2f2f"/>`:``}
+      ${stage>=1? `<line x1="0" y1="10" x2="0" y2="-10" stroke="#166534" stroke-width="3"/>`:``}
+      ${stage>=2? `<ellipse cx="0" cy="-12" rx="14" ry="8" fill="#16a34a"/>`:``}
+      ${stage>=3? `<circle cx="0" cy="-22" r="6" fill="#f97316"/>`:``}
+      ${stage>=4? `<ellipse cx="0" cy="-30" rx="24" ry="14" fill="#10b981" opacity="0.9"/>`:``}
+    </g>
+  </svg>`;
+}
+
+render();
+</script>
+</body>
+</html>
