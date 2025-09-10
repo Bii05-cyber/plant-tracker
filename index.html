@@ -3,37 +3,86 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Cozy To-Do Garden</title>
+<title>Study Garden Widget</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Cormorant+Garamond:wght@400;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Cormorant+Garamond:wght@600&display=swap');
 
   body {
-    margin:0;
+    margin: 0;
     font-family: 'Inter', sans-serif;
-    background: #f9f4ef;
-    color: #3b3d40;
-    padding: 20px;
+    background: transparent; /* transparent so Notion background shows */
+    color: #2d2d2d;
   }
 
-  h1 {
+  .wrap {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  h2 {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 28px;
-    color: #2c2d30;
-    margin-bottom: 18px;
+    font-size: 20px;
+    margin: 0 0 12px;
+    color: #2c2d2d;
   }
-
-  .wrap { max-width: 860px; margin: auto; }
 
   .card {
     background: #ffffff;
     border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    padding: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
 
-  /* Form */
-  form { display: flex; flex-wrap: wrap; gap: 10px; }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    padding: 8px;
+    font-size: 13px;
+    text-align: left;
+  }
+  th { color: #6c6e70; font-weight: 600; }
+  tr:nth-child(even) { background: #f9f7f4; }
+
+  /* Status pills */
+  select {
+    font: inherit;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    padding: 2px 6px;
+    background: #fafafa;
+  }
+
+  .status-pill {
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .notstarted { background: #fbeee6; color: #8f4e2d; }
+  .inprogress { background: #fff2e0; color: #9c5e2a; }
+  .done { background: #e6f4ed; color: #2f6845; }
+
+  /* Plant box */
+  .plant { text-align: center; }
+  .plant img, .plant svg {
+    width: 120px;
+    height: auto;
+    animation: fadein 0.8s ease;
+  }
+  .progress-text {
+    font-size: 14px;
+    margin-top: 6px;
+    color: #555;
+  }
+  @keyframes fadein {
+    from {opacity:0; transform:scale(0.95);}
+    to {opacity:1; transform:scale(1);}
+  }
+
+  /* New task form */
+  form { display: flex; flex-direction: column; gap: 10px; }
   input, button {
     font: inherit;
     padding: 8px;
@@ -46,76 +95,42 @@
     border: none;
     cursor: pointer;
   }
-
-  /* Table */
-  table { width: 100%; border-collapse: collapse; }
-  th, td {
-    padding: 10px;
-    text-align: left;
-    font-size: 14px;
-  }
-  th { color: #6c6e70; font-weight: 600; }
-  tr:nth-child(even) { background: #fcf8f3; }
-
-  /* Status pills */
-  .status-pill {
-    border-radius: 999px;
-    padding: 4px 10px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-  .notstarted { background: #fbeee6; color: #8f4e2d; }
-  .inprogress { background: #fff2e0; color: #9c5e2a; }
-  .done { background: #e6f4ed; color: #2f6845; }
-
-  /* Plant area */
-  .plant {
-    text-align: center;
-    margin: 22px 0 8px;
-  }
-  .plant img, .plant svg {
-    width: 160px;
-    height: auto;
-    animation: fadein 0.8s ease;
-  }
-  @keyframes fadein {
-    from {opacity: 0; transform: scale(0.95);}
-    to {opacity: 1; transform: scale(1);}
-  }
-  .progress-text {
-    color: #4a4b4c;
-    margin-top: 8px;
-    font-size: 16px;
-  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🌿 Study Garden</h1>
 
+  <!-- To-do list -->
   <div class="card">
-    <form id="newTaskForm">
-      <input type="text" id="taskName" placeholder="Task name" required />
-      <input type="text" id="className" placeholder="Class (e.g. Math)" />
-      <input type="date" id="dueDate" required />
-      <button>Add Task</button>
-    </form>
-  </div>
-
-  <div class="card">
+    <h2>📋 To-do</h2>
     <table id="taskTable">
       <thead>
-        <tr><th>Task</th><th>Class</th><th>Status</th><th>Due Date</th><th>Days Left</th><th></th></tr>
+        <tr><th>Task</th><th>Class</th><th>Status</th><th>Due</th><th>Days</th><th></th></tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <div class="card plant" id="plantContainer"></div>
+  <!-- Plant growth -->
+  <div class="card plant" id="plantContainer">
+    <h2>🌱 Garden</h2>
+  </div>
+
+  <!-- Add new task -->
+  <div class="card">
+    <h2>➕ Add Task</h2>
+    <form id="newTaskForm">
+      <input type="text" id="taskName" placeholder="Task name" required />
+      <input type="text" id="className" placeholder="Class (e.g. Math)" />
+      <input type="date" id="dueDate" required />
+      <button>Add</button>
+    </form>
+  </div>
+
 </div>
 
 <script>
-const STORAGE_KEY = "cozy_todo_garden";
+const STORAGE_KEY = "study_garden_widget";
 let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 const today = () => new Date().setHours(0,0,0,0);
 
@@ -179,7 +194,7 @@ function drawPlant(){
   tasks.forEach(t => t.status === "done" ? total += 1 : t.status === "in progress" ? total += 0.5 : 0);
   const score = tasks.length ? total/tasks.length : 0;
   let stage = score >= 0.8 ? 4 : score >= 0.5 ? 3 : score >= 0.3 ? 2 : score >= 0.1 ? 1 : 0;
-  c.innerHTML = plantSVG(stage) + `<div class="progress-text">${Math.round(score*100)}% progress</div>`;
+  c.innerHTML = "<h2>🌱 Garden</h2>" + plantSVG(stage) + `<div class="progress-text">${Math.round(score*100)}% progress</div>`;
 }
 
 function plantSVG(stage){
