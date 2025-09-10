@@ -3,41 +3,68 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Gamified To-Do with Plant</title>
+<title>Lofi To-Do Garden</title>
 <style>
-  :root {
-    --bg: #f9fafb; --card:#ffffff; --accent:#16a34a;
-    --muted:#6b7280;
-  }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Kalam:wght@400&display=swap');
+  
   body {
-    font-family: Inter, system-ui, sans-serif;
-    margin:0; background:var(--bg); color:#111827; padding:16px;
+    margin:0; 
+    font-family: Inter, sans-serif;
+    background: linear-gradient(180deg, #fce7f3 0%, #fef9c3 40%, #ecfccb 100%);
+    color:#1f2937;
+    padding:20px;
   }
-  h1 { font-size:20px; margin:0 0 12px }
-  .wrap { max-width: 960px; margin:0 auto }
-  .card { background:var(--card); border-radius:12px; padding:14px;
-          box-shadow:0 2px 6px rgba(0,0,0,0.08); margin-bottom:14px }
-  table { width:100%; border-collapse: collapse; }
-  th, td { padding:8px; text-align:left; font-size:14px }
-  th { color:var(--muted); font-weight:500; }
-  tr:nth-child(even){ background:#f3f4f6 }
-  input, select {
-    font:inherit; padding:4px 6px; border:1px solid #d1d5db; border-radius:6px;
+  h1 {
+    font-family: Kalam, cursive;
+    font-size:26px; margin:0 0 16px;
+    color:#374151;
   }
-  button { font:inherit; padding:6px 10px; border-radius:6px; cursor:pointer;
-           border:0; background:var(--accent); color:white }
-  button.small { padding:4px 8px; font-size:12px }
-  .status { border-radius:10px; padding:2px 8px; font-size:12px; }
-  .notstarted { background:#fee2e2; color:#991b1b; }
+  .wrap { max-width:900px; margin:0 auto }
+  
+  .card {
+    background:rgba(255,255,255,0.8);
+    border-radius:16px;
+    padding:16px;
+    margin-bottom:16px;
+    box-shadow:0 4px 16px rgba(0,0,0,0.08);
+    backdrop-filter:blur(8px);
+  }
+
+  /* Form */
+  #newTaskForm { display:flex; flex-wrap:wrap; gap:8px }
+  #newTaskForm input, #newTaskForm button {
+    font:inherit; padding:8px 10px; border-radius:10px;
+    border:1px solid #e5e7eb;
+  }
+  #newTaskForm button {
+    background:#a78bfa; color:white; border:none; cursor:pointer;
+  }
+
+  /* Table */
+  table { width:100%; border-collapse:collapse; }
+  th, td { padding:10px; font-size:14px; text-align:left; }
+  th { color:#6b7280; font-weight:600; }
+  tr:nth-child(even) { background:rgba(0,0,0,0.03) }
+  select { border-radius:8px; padding:4px 6px; }
+
+  /* Status pills */
+  .status-pill {
+    border-radius:999px; padding:4px 10px; font-size:12px; font-weight:500;
+    display:inline-block;
+  }
+  .notstarted { background:#fee2e2; color:#b91c1c; }
   .inprogress { background:#fef3c7; color:#92400e; }
   .done { background:#dcfce7; color:#166534; }
-  .plant { text-align:center; margin:20px 0 }
-  svg { width:120px; height:auto }
+
+  /* Plant */
+  .plant { text-align:center; margin:20px 0; }
+  .plant img, .plant svg { width:140px; height:auto; animation:fadein 1s ease }
+  @keyframes fadein { from{opacity:0; transform:scale(0.95)} to{opacity:1; transform:scale(1)} }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🌱 To-do + Habit Plant</h1>
+  <h1>🌸 Lofi Study Garden</h1>
   
   <div class="card">
     <form id="newTaskForm">
@@ -68,9 +95,8 @@
 </div>
 
 <script>
-const STORAGE_KEY = "todo_plant_v1";
+const STORAGE_KEY = "todo_lofi_garden";
 let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
 
 function daysLeft(dateStr){
@@ -86,7 +112,7 @@ function render(){
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${t.name}</td>
-      <td>${t.class || ""}</td>
+      <td><span class="status-pill" style="background:#e0e7ff;color:#3730a3">${t.class||""}</span></td>
       <td>
         <select data-index="${i}" class="statusSel">
           <option value="not started" ${t.status==="not started"?"selected":""}>Not started</option>
@@ -96,7 +122,7 @@ function render(){
       </td>
       <td>${t.due}</td>
       <td>${daysLeft(t.due)}</td>
-      <td><button class="small delBtn" data-index="${i}">✕</button></td>
+      <td><button class="delBtn" data-index="${i}">✕</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -128,12 +154,19 @@ document.addEventListener("click", e=>{
 });
 
 function drawPlant(){
-  const plantDiv = document.getElementById("plantContainer");
-  const done = tasks.filter(t=>t.status==="done").length;
-  const pct = tasks.length? Math.round(done/tasks.length*100):0;
-  let stage = 0;
-  if(pct>=80) stage=4; else if(pct>=50) stage=3; else if(pct>=30) stage=2; else if(pct>=10) stage=1;
-  plantDiv.innerHTML = plantSVG(stage)+`<div>${pct}% tasks completed</div>`;
+  const container = document.getElementById("plantContainer");
+  // calculate score: not started=0, in progress=0.5, done=1
+  let total=0;
+  tasks.forEach(t=>{
+    if(t.status==="done") total+=1;
+    else if(t.status==="in progress") total+=0.5;
+  });
+  const score = tasks.length? total/tasks.length:0;
+  let stage=0;
+  if(score>=0.8) stage=4; else if(score>=0.5) stage=3; else if(score>=0.3) stage=2; else if(score>=0.1) stage=1;
+  
+  // For now, use SVG plant. Replace <svg> with <img src="yourcuteplant.png">
+  container.innerHTML = plantSVG(stage) + `<div>${Math.round(score*100)}% progress</div>`;
 }
 
 function plantSVG(stage){
